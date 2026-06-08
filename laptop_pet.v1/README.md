@@ -37,7 +37,7 @@ If you'd like to modify or build the application from the source code, follow th
 ### 1. Clone the repository
 ```powershell
 git clone https://github.com/azlanabdulla/laptop_pet.git
-cd laptop_pet
+cd laptop_pet\laptop_pet.v1
 ```
 
 ### 2. Install Dependencies
