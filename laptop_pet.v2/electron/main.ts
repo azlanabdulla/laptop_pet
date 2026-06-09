@@ -320,7 +320,7 @@ ipcMain.handle("nova:window:expand", (_event, expanded: boolean) => {
   if (newY < area.y) newY = area.y;
   if (newY + newHeight > area.y + area.height) newY = area.y + area.height - newHeight;
 
-  widget.setBounds({ x: newX, y: newY, width: newWidth, height: newHeight }, true);
+  widget.setBounds({ x: newX, y: newY, width: newWidth, height: newHeight }, false);
 });
 
 let dragStartBounds: { x: number; y: number; width: number; height: number } | null = null;

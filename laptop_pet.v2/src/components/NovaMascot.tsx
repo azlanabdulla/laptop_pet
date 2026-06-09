@@ -1,7 +1,7 @@
 import { motion, useSpring, useTransform, useMotionValue } from "framer-motion";
 import { useEffect, useRef, useState, memo } from "react";
 
-const PALETTE: Record<string, string> = {
+export const PALETTE: Record<string, string> = {
   O: "var(--fox-color, #ff8800)", // Bright Orange
   D: "var(--fox-shade, #e66a00)", // Dark Orange (Shading)
   W: "#ffffff", // White
@@ -9,6 +9,12 @@ const PALETTE: Record<string, string> = {
   E: "#0f0f0f", // Eye Black
   P: "#ff99cc", // Pink (Paws/Ears)
   R: "#ff0000", // Red (Heart)
+  Y: "#ffd700", // Gold/Yellow (Crown)
+  C: "#3b2f2f", // Coffee Brown
+  S: "#00f0ff", // Neon Cyan
+  U: "#8c52ff", // Purple
+  L: "#b68aff", // Light Purple
+  V: "#5e17eb", // Dark Purple
 };
 
 // --- ASCII Pixel Art Data ---
@@ -108,25 +114,99 @@ const ASC_BUBBLE = [
   "         B          "
 ];
 
-// Reusable SVG Pixel Renderer
-const PixelSprite = ({ ascii, className, style }: { ascii: string[]; className?: string; style?: any }) => {
-  const height = ascii.length;
-  const width = Math.max(...ascii.map(r => r.length));
-  
-  const rects = [];
-  for (let y = 0; y < height; y++) {
-    const row = ascii[y] || "";
-    for (let x = 0; x < width; x++) {
-      const char = row[x];
-      if (char && char !== " " && PALETTE[char]) {
-        rects.push(<rect key={`${x}-${y}`} x={x} y={y} width="1.1" height="1.1" fill={PALETTE[char]} />);
-      }
-    }
-  }
+const ASC_GLASSES = [
+  "   BBBBBBBBBB   ",
+  "  BSSSSBBSSSSB  ",
+  "  BSSSSBBSSSSB  ",
+  "  BBBBBBBBBBBB  "
+];
 
+const ASC_BOWTIE = [
+  "BRRRBBRRRB",
+  "BRRB__BRRB",
+  "_BB____BB_"
+];
+
+const ASC_CROWN = [
+  " Y  Y  Y ",
+  " YYYYYYY ",
+  " YYYYYYY ",
+  "  YYYYY  "
+];
+
+const ASC_HEADPHONES = [
+  "___BBBBBBBBBB___",
+  "__BBUUUUUUUUBB__",
+  "_BB__________BB_",
+  "_U____________U_",
+  "_U____________U_",
+  "_U____________U_",
+  "LUU__________LUU",
+  "VUU__________VUU"
+];
+
+const ASC_BABY_FOX = [
+  "___B_______B____",
+  "__BPB_____BPB___",
+  "__BPOBBBBBPOB___",
+  "___BDOOOOODB____",
+  "___BOWEWEWOB____",
+  "____BWWWWWBB____",
+  "_____BBBB_______",
+  "____BDDDDB______",
+  "__BBBOOOOOB_____",
+  "_BWWWBOOOOB_____",
+  "_BWWWBB_BBB_____",
+  "__BBB___________"
+];
+
+const ASC_CAPE = [
+  "___RRRRRRRR___",
+  "__RRRRRRRRRR__",
+  "__RRRRRRRRRR__",
+  "_RRRRRRRRRRRR_",
+  "_RRRRRRRRRRRR_",
+  "RRRRRRRRRRRRRR",
+  "RRRR_RRRR_RRRR",
+  "RR___RRRR___RR"
+];
+
+const ASC_DRONE = [
+  "______WW______",
+  "____WWWWWW____",
+  "___BWWWWWWB___",
+  "__BSSBBBBSSB__",
+  "_BSSSSSSSSSSB_",
+  "BBBBBBBBBBBBBB",
+  "___B_BBBB_B___",
+  "___R______R___"
+];
+
+export const ITEM_SPRITES: Record<string, string[]> = {
+  "Bowtie": ASC_BOWTIE,
+  "Headphones": ASC_HEADPHONES,
+  "Cooling Glasses": ASC_GLASSES,
+  "Baby Fox": ASC_BABY_FOX,
+  "Super Cape": ASC_CAPE,
+  "Golden Crown": ASC_CROWN,
+  "Mini Drone": ASC_DRONE
+};
+
+// Reusable SVG Pixel Renderer
+export const PixelSprite = ({ ascii, className, style }: { ascii: string[]; className?: string; style?: any }) => {
+  if (!ascii || !Array.isArray(ascii) || ascii.length === 0) return null;
+  const height = ascii.length;
+  const width = Math.max(...ascii.map(r => r?.length || 0));
+  
   return (
     <motion.svg className={className} style={style} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
-      {rects}
+      {ascii.map((row, y) => 
+        row.split('').map((char, x) => 
+          (char !== ' ' && char !== '_') ? (
+            <rect key={`${x}-${y}`} x={x} y={y} width={1.05} height={1.05} fill={PALETTE[char] || char} />
+          ) : null
+        )
+      )}
     </motion.svg>
   );
 };
@@ -141,8 +221,10 @@ interface NovaMascotProps {
   typingRate?: number;
   petColor?: string;
   accentColor?: string;
+  equippedItems?: string[];
   onHover: () => void;
   onActivate: () => void;
+  isBaby?: boolean;
 }
 
 
@@ -154,7 +236,7 @@ const ASC_HEART = [
   "  R  "
 ];
 
-export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, progress, typingRate = 0, petColor, accentColor, onHover, onActivate }: NovaMascotProps) {
+export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, progress, typingRate = 0, petColor, accentColor, equippedItems = [], onHover, onActivate, isBaby }: NovaMascotProps) {
   const [dragging, setDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -335,7 +417,7 @@ export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, pro
       } as React.CSSProperties}
     >
       <motion.div 
-        className={`nova-pixel-coded mood-${currentMood} time-${timeOfDay} ${typingRate > 20 ? 'data-stream holo-symbols' : ''}`}
+        className={`nova-pixel-coded mood-${currentMood} time-${timeOfDay} ${typingRate > 20 ? 'data-stream holo-symbols' : ''} ${equippedItems.includes("Neon Aura") ? 'equipped-neon-aura' : ''}`}
         style={{
           width: 180,
           height: 180,
@@ -344,12 +426,14 @@ export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, pro
           touchAction: "none"
         }}
         onPointerDown={(e) => {
+          if (isBaby) return;
           e.currentTarget.setPointerCapture(e.pointerId);
           setDragging(true);
           window.nova?.dragWindow.start(e.screenX, e.screenY);
           lastPoint.current = { x: e.screenX, y: e.screenY, at: performance.now() };
         }}
         onPointerMove={(e) => {
+          if (isBaby) return;
           if (dragging) {
             window.nova?.dragWindow.move(e.screenX, e.screenY);
             
@@ -394,7 +478,17 @@ export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, pro
             className="pixel-body-chest" 
             style={{ rotate: bodyRotate, transformOrigin: 'top center' }}
           >
+            {equippedItems.includes("Super Cape") && (
+              <motion.div animate={{ rotate: [-5, 5, -5], z: -10 }} transition={{ repeat: Infinity, duration: 1 }} style={{ position: 'absolute', top: '10px', left: '-10px', zIndex: 0, width: '100px', height: '60px' }}>
+                <PixelSprite ascii={ASC_CAPE} style={{ width: '100%', height: '100%' }} />
+              </motion.div>
+            )}
             <PixelSprite ascii={ASC_BODY_TOP} style={{ position: 'relative', zIndex: 10 }} />
+            {equippedItems.includes("Bowtie") && (
+              <div style={{ position: 'absolute', top: '6px', left: '18px', zIndex: 11, width: '48px', height: '18px', transform: 'translateZ(20px)' }}>
+                <PixelSprite ascii={ASC_BOWTIE} style={{ width: '100%', height: '100%' }} />
+              </div>
+            )}
             
             <motion.div className="pixel-body-mid">
               <PixelSprite ascii={ASC_BODY_MID} style={{ position: 'absolute', inset: 0, zIndex: 10 }} />
@@ -417,7 +511,7 @@ export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, pro
           </motion.div>
         </motion.div>
         
-        <PixelSprite ascii={ASC_KEYBOARD} className="pixel-keyboard" />
+        {!isBaby && <PixelSprite ascii={ASC_KEYBOARD} className="pixel-keyboard" />}
           <motion.div 
             className="pixel-head-container"
             onMouseEnter={handleHeadEnter}
@@ -446,6 +540,22 @@ export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, pro
           </motion.div>
 
           <PixelSprite ascii={ASC_HEAD} className="pixel-head" />
+          
+          {equippedItems.includes("Cooling Glasses") && (
+            <div style={{ position: 'absolute', top: '18px', left: '0', zIndex: 10, width: '96px', height: '24px' }}>
+              <PixelSprite ascii={ASC_GLASSES} style={{ width: '100%', height: '100%' }} />
+            </div>
+          )}
+          {equippedItems.includes("Golden Crown") && (
+            <div style={{ position: 'absolute', top: '-18px', left: '21px', zIndex: 11, width: '54px', height: '24px' }}>
+              <PixelSprite ascii={ASC_CROWN} style={{ width: '100%', height: '100%' }} />
+            </div>
+          )}
+          {equippedItems.includes("Headphones") && (
+            <div style={{ position: 'absolute', top: '-13px', left: '0px', zIndex: 11, width: '96px', height: '48px' }}>
+              <PixelSprite ascii={ASC_HEADPHONES} style={{ width: '100%', height: '100%' }} />
+            </div>
+          )}
 
           {/* Independent Floating Pupils */}
           <motion.svg className="pixel-eyes-overlay" viewBox="0 0 16 10" preserveAspectRatio="xMidYMid meet">
@@ -462,6 +572,23 @@ export const NovaMascot = memo(function NovaMascot({ mood, weather, pointer, pro
             </motion.svg>
             </div>
           </motion.div>
+
+      {!isBaby && equippedItems.includes("Baby Fox") && (
+        <div style={{ position: 'absolute', bottom: '-40px', right: '-50px', transform: 'scale(0.55)', transformOrigin: 'bottom left', pointerEvents: 'none', zIndex: 5 }}>
+          <NovaMascot
+            mood={"excited"} pointer={pointer} progress={progress} typingRate={0}
+            petColor={petColor} accentColor={accentColor}
+            equippedItems={[]} onHover={() => {}} onActivate={() => {}}
+            isBaby={true}
+          />
+        </div>
+      )}
+      
+      {equippedItems.includes("Mini Drone") && (
+        <motion.div animate={{ y: [-5, 5, -5] }} transition={{ repeat: Infinity, duration: 2 }} style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 30, width: '56px', height: '32px' }}>
+          <PixelSprite ascii={ASC_DRONE} style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 5px var(--accent))' }} />
+        </motion.div>
+      )}
 
       {/* Extra Effects Elements */}
       {currentMood === "thinking" && (

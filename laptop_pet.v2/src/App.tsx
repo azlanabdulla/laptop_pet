@@ -14,7 +14,20 @@ const fallbackSettings: NovaSettings = {
   xp: 0,
   petColor: "#ff8800",
   accentColor: "#00f3ff",
+  unlockedItems: [],
+  equippedItems: [],
 };
+
+const UNLOCK_TIERS = [
+  { level: 5, item: "Bowtie" },
+  { level: 10, item: "Headphones" },
+  { level: 15, item: "Cooling Glasses" },
+  { level: 20, item: "Baby Fox" },
+  { level: 25, item: "Super Cape" },
+  { level: 30, item: "Neon Aura" },
+  { level: 40, item: "Mini Drone" },
+  { level: 50, item: "Golden Crown" },
+];
 
 export function App() {
   const [mood, setMoodState] = useState<NovaMood>("happy");
@@ -28,17 +41,63 @@ export function App() {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const setMood = useCallback((next: NovaMood) => setMoodState(next), []);
   const { pointer, typingRate } = useNovaActivity(setMood);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  const checkUnlocks = (newLevel: number, currentSettings: NovaSettings) => {
+    let unlocked = [...(currentSettings.unlockedItems || [])];
+    let newUnlocks: string[] = [];
+    
+    for (const tier of UNLOCK_TIERS) {
+      if (newLevel >= tier.level && !unlocked.includes(tier.item)) {
+        unlocked.push(tier.item);
+        newUnlocks.push(tier.item);
+      }
+    }
+    
+    if (newUnlocks.length > 0) {
+      setTimeout(() => {
+        setMessage(`Unlocked: ${newUnlocks.join(", ")}!`);
+        setTimeout(() => setMessage(""), 5000);
+      }, 3000);
+    }
+    return unlocked;
+  };
 
   const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     void window.nova?.settings.get().then((s: any) => {
       if (s) {
-        setSettings(s);
-        if (!s.userName || !s.petName) setShowWelcome(true);
+        // Retroactively unlock items
+        let unlocked = [...(s.unlockedItems || [])];
+        let changed = false;
+        for (const tier of UNLOCK_TIERS) {
+          if (s.level >= tier.level && !unlocked.includes(tier.item)) {
+            unlocked.push(tier.item);
+            changed = true;
+          }
+        }
+        // Cleanup deprecated items
+        let equipped = [...(s.equippedItems || [])];
+        if (unlocked.includes("Coffee Mug")) {
+          unlocked = unlocked.filter(i => i !== "Coffee Mug");
+          changed = true;
+        }
+        if (equipped.includes("Coffee Mug")) {
+          equipped = equipped.filter(i => i !== "Coffee Mug");
+          changed = true;
+        }
+        
+        const finalSettings = changed ? { ...s, unlockedItems: unlocked, equippedItems: equipped } : s;
+        setSettings(finalSettings);
+        if (changed) void window.nova?.settings.save(finalSettings);
+
+        if (!finalSettings.userName || !finalSettings.petName) setShowWelcome(true);
       } else {
         setShowWelcome(true);
       }
+      // Wait a tick before setting isLoaded so the first render with loaded settings doesn't trigger level up
+      setTimeout(() => setIsLoaded(true), 100);
     });
     void window.nova?.notes.list().then(setNotes);
   }, []);
@@ -102,7 +161,9 @@ export function App() {
         const currentLevel = settings.level || 1;
         const newXp = currentXp + 50;
         if (newXp >= 100) {
-          saveSettings({ ...settings, xp: newXp - 100, level: currentLevel + 1 });
+          const newLevel = currentLevel + 1;
+          const newUnlocked = checkUnlocks(newLevel, settings);
+          saveSettings({ ...settings, xp: newXp - 100, level: newLevel, unlockedItems: newUnlocked });
         } else {
           saveSettings({ ...settings, xp: newXp });
         }
@@ -133,12 +194,12 @@ export function App() {
   const prevLevelRef = useRef(settings.level);
 
   useEffect(() => {
-    if (settings.level > prevLevelRef.current) {
+    if (isLoaded && settings.level > prevLevelRef.current) {
       setShowLevelUp(true);
       setTimeout(() => setShowLevelUp(false), 3000);
     }
     prevLevelRef.current = settings.level;
-  }, [settings.level]);
+  }, [settings.level, isLoaded]);
 
   let displayMood = mood;
   if (showLevelUp) displayMood = "levelup";
@@ -229,7 +290,9 @@ export function App() {
                 const currentLevel = settings.level || 1;
                 const newXp = currentXp + 5;
                 if (newXp >= 100) {
-                  saveSettings({ ...settings, xp: newXp - 100, level: currentLevel + 1 });
+                  const newLevel = currentLevel + 1;
+                  const newUnlocked = checkUnlocks(newLevel, settings);
+                  saveSettings({ ...settings, xp: newXp - 100, level: newLevel, unlockedItems: newUnlocked });
                 } else {
                   saveSettings({ ...settings, xp: newXp });
                 }
@@ -249,9 +312,9 @@ export function App() {
         {(showLevelUp || message || notes.length > 0) && (
           <motion.div
             className={`speech pixel-comic ${showLevelUp ? 'levelup-text' : ''}`}
-            initial={{ opacity: 0, x: "-50%", y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, x: "-50%", y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: "-50%" }}
+            initial={{ opacity: 0, x: "50%", y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, x: "50%", y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: "50%" }}
           >
             {showLevelUp ? "LEVEL UP!" : (message || notes[0]?.body)}
           </motion.div>
@@ -265,6 +328,7 @@ export function App() {
         typingRate={typingRate}
         petColor={settings.petColor}
         accentColor={settings.accentColor}
+        equippedItems={settings.equippedItems || []}
         onActivate={toggleExpanded}
         onHover={handleHover}
       />

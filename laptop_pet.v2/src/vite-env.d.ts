@@ -29,6 +29,8 @@ interface NovaSettings {
   xp: number;
   petColor: string;
   accentColor: string;
+  unlockedItems: string[];
+  equippedItems: string[];
 }
 
 interface NovaNote {

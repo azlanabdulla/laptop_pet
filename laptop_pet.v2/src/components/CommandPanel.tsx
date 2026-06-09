@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ITEM_SPRITES, PixelSprite } from "./NovaMascot";
 
 interface CommandPanelProps {
   settings: NovaSettings;
@@ -18,7 +19,7 @@ export function CommandPanel(props: CommandPanelProps) {
   const [setupUserName, setSetupUserName] = useState("");
   const [setupPetName, setSetupPetName] = useState("");
   const [reminderText, setReminderText] = useState("");
-  const [activeTab, setActiveTab] = useState<"tasks" | "reminders" | "settings">("tasks");
+  const [activeTab, setActiveTab] = useState<"tasks" | "reminders" | "wardrobe" | "settings">("tasks");
   const [mediaState, setMediaState] = useState({ playing: false, title: "", artist: "" });
 
   useEffect(() => {
@@ -105,10 +106,11 @@ export function CommandPanel(props: CommandPanelProps) {
         <div style={{ width: `${xpPercent}%`, height: '100%', background: 'var(--accent, #00f0ff)', transition: 'width 0.3s' }} />
       </div>
 
-      <div className="tabs" style={{ display: 'flex', gap: '10px', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '5px' }}>
-        <button style={{ opacity: activeTab === 'tasks' ? 1 : 0.5, background: 'none', border: 'none', color: 'white', cursor: 'pointer' }} onClick={() => setActiveTab('tasks')}>Tasks</button>
-        <button style={{ opacity: activeTab === 'reminders' ? 1 : 0.5, background: 'none', border: 'none', color: 'white', cursor: 'pointer' }} onClick={() => setActiveTab('reminders')}>Reminders</button>
-        <button style={{ opacity: activeTab === 'settings' ? 1 : 0.5, background: 'none', border: 'none', color: 'white', cursor: 'pointer' }} onClick={() => setActiveTab('settings')}>Settings</button>
+      <div className="tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '5px', fontSize: '13px' }}>
+        <button style={{ opacity: activeTab === 'tasks' ? 1 : 0.5, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '2px 4px' }} onClick={() => setActiveTab('tasks')}>Tasks</button>
+        <button style={{ opacity: activeTab === 'reminders' ? 1 : 0.5, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '2px 4px' }} onClick={() => setActiveTab('reminders')}>Reminders</button>
+        <button style={{ opacity: activeTab === 'wardrobe' ? 1 : 0.5, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '2px 4px' }} onClick={() => setActiveTab('wardrobe')}>Wardrobe</button>
+        <button style={{ opacity: activeTab === 'settings' ? 1 : 0.5, background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '2px 4px' }} onClick={() => setActiveTab('settings')}>Settings</button>
       </div>
 
       {activeTab === 'tasks' && (
@@ -122,6 +124,7 @@ export function CommandPanel(props: CommandPanelProps) {
 
           <form
             className="note-form"
+            style={{ display: 'flex', gap: '8px', marginTop: '15px' }}
             onSubmit={(event) => {
               event.preventDefault();
               if (!note.trim()) return;
@@ -130,18 +133,20 @@ export function CommandPanel(props: CommandPanelProps) {
             }}
           >
             <input
+              style={{ flex: 1, padding: '8px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', outline: 'none' }}
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder={`Attach a note to ${props.settings.petName || "NOVA"}...`}
             />
-            <button>Add</button>
+            <button style={{ padding: '0 15px', background: 'var(--accent)', color: '#000', border: 'none', fontWeight: 'bold' }}>Add</button>
           </form>
 
-          <div className="notes">
+          <div className="notes" style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: '10px' }}>
             {props.notes.slice(0, 3).map((item) => (
-              <button key={item.id} onClick={() => props.onDeleteNote(item.id)}>
-                {item.body}<span>×</span>
-              </button>
+              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '12px' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.body}</span>
+                <button onClick={() => props.onDeleteNote(item.id)} style={{ background: 'transparent', border: 'none', color: '#ff536d', padding: '0 5px', fontSize: '16px', cursor: 'pointer', outline: 'none', boxShadow: 'none' }}>×</button>
+              </div>
             ))}
           </div>
         </>
@@ -176,6 +181,49 @@ export function CommandPanel(props: CommandPanelProps) {
               <button onClick={() => window.nova?.media?.next()} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>⏭</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'wardrobe' && (
+        <div className="wardrobe-tab" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '5px' }}>
+          {(!props.settings.unlockedItems || props.settings.unlockedItems.length === 0) ? (
+            <div style={{ opacity: 0.5, fontSize: '12px', textAlign: 'center', marginTop: '10px', gridColumn: '1 / -1' }}>Level up to unlock items!</div>
+          ) : (
+            props.settings.unlockedItems.filter(item => item !== "Coffee Mug").map(item => {
+              const isEquipped = props.settings.equippedItems?.includes(item);
+              return (
+                <label key={item} style={{ 
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', fontSize: '11px', cursor: 'pointer',
+                  background: isEquipped ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${isEquipped ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}`,
+                  padding: '8px', borderRadius: '4px'
+                }}>
+                  <div style={{ height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {item === "Neon Aura" ? <div style={{width: 20, height: 20, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 10px var(--accent)'}}></div> :
+                     item === "Mini Drone" ? <span style={{fontSize: '24px'}}>🛸</span> :
+                     <PixelSprite ascii={ITEM_SPRITES[item]} style={{ width: 'auto', height: '100%', maxHeight: '32px' }} />}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%', justifyContent: 'center' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isEquipped || false} 
+                      onChange={(e) => {
+                        let currentEquipped = [...(props.settings.equippedItems || [])];
+                        if (e.target.checked) {
+                          currentEquipped.push(item);
+                        } else {
+                          currentEquipped = currentEquipped.filter(i => i !== item);
+                        }
+                        props.onSettings({ ...props.settings, equippedItems: currentEquipped });
+                      }} 
+                      style={{ margin: 0 }}
+                    />
+                    <span style={{ textAlign: 'center' }}>{item}</span>
+                  </div>
+                </label>
+              );
+            })
+          )}
         </div>
       )}
 
