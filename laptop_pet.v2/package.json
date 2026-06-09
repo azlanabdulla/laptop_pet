@@ -1,6 +1,6 @@
 {
   "name": "nova-pet",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A persistent holographic desktop AI companion",
   "main": "dist-electron/main.js",
   "type": "module",
@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
+    "electron-log": "^5.4.4",
+    "electron-updater": "^6.8.9",
     "framer-motion": "^12.23.24",
     "gsap": "^3.13.0",
     "react": "^19.2.0",
@@ -56,6 +58,13 @@
     ],
     "win": {
       "target": "nsis"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "azlanabdulla",
+        "repo": "laptop_pet"
+      }
+    ]
   }
 }

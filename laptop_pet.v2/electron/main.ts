@@ -19,6 +19,8 @@ import { getSystemSnapshot } from "./monitor.js";
 import { StartupManager } from "./startup.js";
 import { ShutdownManager } from "./shutdown.js";
 import { RegistryManager } from "./registry.js";
+import { autoUpdater } from "electron-updater";
+import log from "electron-log";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 const cacheRoot = path.join(
@@ -36,6 +38,11 @@ const hasInstanceLock = app.requestSingleInstanceLock();
 if (!hasInstanceLock) {
   app.quit();
 }
+
+// Configure autoUpdater logging
+autoUpdater.logger = log;
+(autoUpdater.logger as any).transports.file.level = "info";
+log.info("App starting...");
 
 let widget: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -209,6 +216,18 @@ app.whenReady().then(() => {
   store = new NovaStore();
   createWindow();
   createTray();
+  
+  // Check for updates
+  autoUpdater.checkForUpdatesAndNotify();
+
+  autoUpdater.on('update-available', () => {
+    log.info('Update available.');
+  });
+  
+  autoUpdater.on('update-downloaded', () => {
+    log.info('Update downloaded; will install on quit or can be triggered manually.');
+    // Optionally we can send an IPC to the renderer to show an "Update Ready" notification.
+  });
   
   if (widget) {
     StartupManager.initialize(store, widget, () => {
