@@ -1,6 +1,6 @@
 {
   "name": "nova-pet",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "A persistent holographic desktop AI companion",
   "main": "dist-electron/main.js",
   "type": "module",

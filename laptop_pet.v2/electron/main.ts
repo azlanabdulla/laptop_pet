@@ -19,7 +19,8 @@ import { getSystemSnapshot } from "./monitor.js";
 import { StartupManager } from "./startup.js";
 import { ShutdownManager } from "./shutdown.js";
 import { RegistryManager } from "./registry.js";
-import { autoUpdater } from "electron-updater";
+import pkg from "electron-updater";
+const { autoUpdater } = pkg;
 import log from "electron-log";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -134,11 +135,17 @@ function startTypingWorker() {
   });
 }
 
+function getIconPath() {
+  const isDev = !!process.env.VITE_DEV_SERVER_URL;
+  return path.join(dirname, isDev ? "../public/icon.png" : "../dist/icon.png");
+}
+
 function createWindow() {
   const display = screen.getPrimaryDisplay();
   widget = new BrowserWindow({
     width: 350,
     height: 350,
+    icon: getIconPath(),
     x: display.bounds.width - 370,
     y: display.bounds.height - 400,
     frame: false,
@@ -173,7 +180,7 @@ function createWindow() {
 }
 
 function createTray() {
-  const icon = nativeImage.createEmpty();
+  const icon = nativeImage.createFromPath(getIconPath());
   tray = new Tray(icon);
   tray.setToolTip("Nova Pet");
   tray.setContextMenu(
